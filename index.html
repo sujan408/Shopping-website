@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Minimal Shop — Demo</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --accent:#7c5cff; --muted:#7b7f93;
+      --glass: rgba(255,255,255,0.6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,var(--bg),#eef2ff 60%); color:#10101a; -webkit-font-smoothing:antialiased;
+      padding:32px; display:flex; align-items:flex-start; justify-content:center;
+    }
+
+    /* container */
+    .app{
+      width:100%; max-width:1200px; min-height:600px; background:transparent; display:grid; grid-template-columns: 1fr 360px; gap:24px;
+    }
+
+    /* left: products */
+    .panel{
+      background:transparent; padding:20px; border-radius:16px;
+    }
+    header.sitebar{display:flex; gap:12px; align-items:center; margin-bottom:14px}
+    .logo{display:flex; gap:12px; align-items:center}
+    .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#23c6d9);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .search{
+      margin-left:auto; display:flex; gap:8px; align-items:center; background:var(--card); padding:8px 10px; border-radius:12px; box-shadow: 0 6px 18px rgba(16,16,26,0.06);
+    }
+    .search input{border:0; outline:0; width:240px; background:transparent}
+
+    .filters{display:flex; gap:10px; margin:14px 0 22px}
+    .btn{background:var(--card); border-radius:12px; padding:8px 12px; border:1px solid rgba(16,16,26,0.04); cursor:pointer}
+    .btn.ghost{background:transparent}
+
+    .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:18px}
+    .card{background:var(--card); border-radius:14px; padding:12px; box-shadow:0 8px 30px rgba(16,16,26,0.06); display:flex; flex-direction:column; gap:10px}
+    .thumb{height:160px; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg, #f8fafc, #eef2ff)}
+    .thumb img{width:100%; height:100%; object-fit:cover}
+    .title{font-weight:600}
+    .price{font-weight:700}
+    .meta{display:flex; justify-content:space-between; align-items:center}
+
+    /* right: cart */
+    .cart{
+      background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.6)); border-radius:16px; padding:18px; box-shadow:0 10px 40px rgba(12,12,30,0.06);
+      backdrop-filter: blur(6px);
+    }
+    .cart h3{margin:0 0 6px}
+    .cart-list{display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; padding-right:6px}
+    .cart-item{display:flex; gap:10px; align-items:center}
+    .cart-item img{width:56px;height:56px;border-radius:8px;object-fit:cover}
+    .qty{display:flex; align-items:center; gap:6px}
+    .qty button{width:28px;height:28px;border-radius:8px;border:0;background:var(--bg); cursor:pointer}
+    .checkout{margin-top:12px; display:flex; gap:8px; align-items:center}
+    .total{margin-left:auto; font-weight:800}
+
+    /* modal */
+    .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(7,7,10,0.4)}
+    .modal.show{display:flex}
+    .modal-card{width:90%; max-width:960px; background:var(--card); border-radius:14px; padding:18px; display:grid; grid-template-columns: 1fr 320px; gap:16px}
+
+    /* footer */
+    footer{margin-top:18px; text-align:center; color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:980px){
+      .app{grid-template-columns:1fr; padding-bottom:60px}
+      .cart{order:2}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header class="sitebar">
+        <div class="logo"><div class="mark">S</div><div><div style="font-weight:700">Simple Shop</div><div style="font-size:12px;color:var(--muted)">HTML • CSS • JS demo</div></div></div>
+
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35" stroke="#9aa0b4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="5.5" stroke="#9aa0b4" stroke-width="1.6"></circle></svg>
+          <input id="searchInput" placeholder="Search products..." />
+          <select id="sortSelect" title="Sort" style="border:0;background:transparent;outline:0">
+            <option value="default">Sort</option>
+            <option value="price-asc">Price low → high</option>
+            <option value="price-desc">Price high → low</option>
+            <option value="alpha">A → Z</option>
+          </select>
+        </div>
+      </header>
+
+      <div class="filters">
+        <button class="btn" data-filter="all">All</button>
+        <button class="btn" data-filter="clothing">Clothing</button>
+        <button class="btn" data-filter="gadgets">Gadgets</button>
+        <button class="btn" data-filter="home">Home</button>
+        <button class="btn ghost" id="clearFilters">Clear</button>
+      </div>
+
+      <main>
+        <div class="grid" id="productGrid"></div>
+      </main>
+
+      <footer>Demo shop • No payments — this is a front-end prototype</footer>
+    </div>
+
+    <aside class="cart">
+      <h3>Your Cart</h3>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Items in cart are stored locally in your browser.</div>
+      <div class="cart-list" id="cartList"></div>
+      <div class="checkout">
+        <div style="font-size:13px;color:var(--muted);">Promo code (mock):</div>
+        <input id="promo" placeholder="SUMMER10" style="flex:1;border-radius:10px;padding:8px;border:1px solid rgba(16,16,26,0.06)" />
+      </div>
+      <div style="display:flex;align-items:center;margin-top:12px">
+        <div style="font-weight:700">Subtotal</div>
+        <div class="total" id="subtotal">₹0</div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:8px">
+        <button class="btn" id="clearCart">Clear</button>
+        <button class="btn" id="checkoutBtn" style="background:var(--accent); color:white; border:0">Checkout</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- modal product -->
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <div id="modalMain"></div>
+      <div id="modalSide"></div>
+    </div>
+  </div>
+
+<script>
+// ===== sample product data =====
+const PRODUCTS = [
+  {id:1,title:'Classic White T‑Shirt',price:399,category:'clothing',img:'https://images.unsplash.com/photo-1520975919210-5f6f784f0af6?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=1'},
+  {id:2,title:'Noise‑Canceling Headphones',price:4999,category:'gadgets',img:'https://images.unsplash.com/photo-1518441902116-0aa0b2f6f8ab?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=2'},
+  {id:3,title:'Ceramic Mug — 350ml',price:299,category:'home',img:'https://images.unsplash.com/photo-1523986371872-9d3ba2e2f642?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=3'},
+  {id:4,title:'Slimfit Jeans',price:1999,category:'clothing',img:'https://images.unsplash.com/photo-1585386959984-a415522e3f17?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=4'},
+  {id:5,title:'Portable Charger 10,000mAh',price:1299,category:'gadgets',img:'https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=5'},
+  {id:6,title:'Indoor Plant — Pothos',price:799,category:'home',img:'https://images.unsplash.com/photo-1524594154900-0c14b4f8d1f1?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=6'},
+  {id:7,title:'Running Sneakers',price:3599,category:'clothing',img:'https://images.unsplash.com/photo-1517949908113-9b4aefed2d1d?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=7'},
+  {id:8,title:'Smart Speaker Mini',price:2599,category:'gadgets',img:'https://images.unsplash.com/photo-1581092795360-8a2a1a9e3c71?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=8'}
+];
+
+// ===== state =====
+let state = {
+  products: PRODUCTS.slice(),
+  cart: JSON.parse(localStorage.getItem('demo_cart')||'{}'),
+  filter: 'all',
+  search: '',
+  sort: 'default'
+};
+
+// ===== utils =====
+const $ = (sel, root=document) => root.querySelector(sel);
+const format = v => '₹' + Number(v).toLocaleString('en-IN');
+
+// ===== render products =====
+function renderProducts(){
+  const grid = $('#productGrid'); grid.innerHTML='';
+  let list = state.products.slice();
+  if(state.filter !== 'all') list = list.filter(p=>p.category===state.filter);
+  if(state.search) list = list.filter(p=>p.title.toLowerCase().includes(state.search.toLowerCase()));
+  if(state.sort==='price-asc') list.sort((a,b)=>a.price-b.price);
+  if(state.sort==='price-desc') list.sort((a,b)=>b.price-a.price);
+  if(state.sort==='alpha') list.sort((a,b)=>a.title.localeCompare(b.title));
+
+  if(list.length===0){ grid.innerHTML = '<div style="padding:40px;color:var(--muted)">No products found.</div>'; return }
+
+  for(const p of list){
+    const div = document.createElement('div'); div.className='card';
+    div.innerHTML = `
+      <div class="thumb"><img src="${p.img}" alt="${p.title}" loading="lazy"></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="title">${p.title}</div>
+        <div class="meta"><div style="color:var(--muted);font-size:13px">${p.category}</div><div class="price">${format(p.price)}</div></div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn" data-id="${p.id}" onclick="openQuick(${p.id})">Quick view</button>
+          <button class="btn" onclick="addToCart(${p.id})">Add to cart</button>
+        </div>
+      </div>`;
+    grid.appendChild(div);
+  }
+}
+
+// ===== cart logic =====
+function saveCart(){ localStorage.setItem('demo_cart', JSON.stringify(state.cart)); renderCart(); }
+
+function addToCart(id, qty=1){ const key = String(id); state.cart[key] = (state.cart[key]||0) + qty; saveCart(); }
+function removeFromCart(id){ delete state.cart[String(id)]; saveCart(); }
+function setQty(id, qty){ if(qty<=0) removeFromCart(id); else state.cart[String(id)] = qty; saveCart(); }
+
+function cartItems(){
+  return Object.entries(state.cart).map(([id,q])=>{
+    const p = state.products.find(x=>x.id==id);
+    return {product:p, qty:q};
+  }).filter(Boolean);
+}
+
+function subtotal(){ return cartItems().reduce((s,i)=>s + i.product.price * i.qty, 0); }
+
+function renderCart(){
+  const list = $('#cartList'); list.innerHTML='';
+  const items = cartItems();
+  if(items.length===0){ list.innerHTML = '<div style="padding:18px;color:var(--muted)">Your cart is empty.</div>'; $('#subtotal').textContent = format(0); return }
+  for(const it of items){
+    const row = document.createElement('div'); row.className='cart-item';
+    row.innerHTML = `
+      <img src="${it.product.img}" alt="">
+      <div style="flex:1">
+        <div style="font-weight:700">${it.product.title}</div>
+        <div style="font-size:13px;color:var(--muted)">${format(it.product.price)}</div>
+      </div>
+      <div class="qty">
+        <button onclick="setQty(${it.product.id}, ${it.qty-1})">−</button>
+        <div style="min-width:26px;text-align:center">${it.qty}</div>
+        <button onclick="setQty(${it.product.id}, ${it.qty+1})">＋</button>
+      </div>
+      <div style="margin-left:8px;font-weight:700">${format(it.product.price * it.qty)}</div>
+    `;
+    list.appendChild(row);
+  }
+  $('#subtotal').textContent = format(subtotal());
+}
+
+// ===== UI bits =====
+function openQuick(id){
+  const p = state.products.find(x=>x.id===id);
+  if(!p) return;
+  $('#modal').classList.add('show');
+  $('#modalMain').innerHTML = `
+    <div style="padding:8px">
+      <div style="height:320px;border-radius:12px;overflow:hidden"><img src="${p.img}" style="width:100%;height:100%;object-fit:cover"></div>
+      <h2 style="margin:10px 0">${p.title}</h2>
+      <div style="color:var(--muted);margin-bottom:10px">Category: ${p.category}</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:10px">${format(p.price)}</div>
+      <p style="color:var(--muted)">This product is part of the demo catalog. Price, availability and images are for demonstration only.</p>
+    </div>
+  `;
+  $('#modalSide').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;padding:8px">
+      <div style="font-weight:700">Buy options</div>
+      <div style="display:flex;gap:8px"><button class="btn" onclick="addToCart(${p.id},1); closeModal();">Add to cart</button><button class="btn ghost" onclick="closeModal()">Close</button></div>
+      <div style="margin-top:6px;color:var(--muted);font-size:13px">Share this product</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" onclick="navigator.clipboard?.writeText(window.location.href + '#product='+${p.id})">Copy link</button>
+      </div>
+    </div>
+  `;
+}
+function closeModal(){ $('#modal').classList.remove('show'); }
+
+// ===== events =====
+document.addEventListener('click', e=>{ if(e.target===document.getElementById('modal')) closeModal(); });
+$('#searchInput').addEventListener('input', e=>{ state.search = e.target.value; renderProducts(); });
+$('#sortSelect').addEventListener('change', e=>{ state.sort = e.target.value; renderProducts(); });
+
+for(const b of document.querySelectorAll('[data-filter]')) b.addEventListener('click', e=>{ state.filter = e.currentTarget.dataset.filter; renderProducts(); });
+$('#clearFilters').addEventListener('click', ()=>{ state.filter='all'; state.search=''; $('#searchInput').value=''; renderProducts(); });
+$('#clearCart').addEventListener('click', ()=>{ state.cart={}; saveCart(); });
+$('#checkoutBtn').addEventListener('click', ()=>{
+  if(subtotal()===0){ alert('Your cart is empty. Add something first!'); return }
+  const code = $('#promo').value.trim();
+  let total = subtotal();
+  if(code.toUpperCase()==='SUMMER10'){ total = Math.round(total*0.9); alert('Promo applied: 10% off!'); }
+  alert('Checkout (demo) — order total: ' + format(total) + '\n\nThis is a front-end prototype only.');
+});
+
+// restore cart & initial render
+renderProducts(); renderCart();
+
+// expose for inline onclick handlers
+window.addToCart = addToCart; window.openQuick = openQuick; window.setQty = setQty; window.closeModal = closeModal; window.removeFromCart = removeFromCart;
+</script>
+</body>
+</html>
