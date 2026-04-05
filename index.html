@@ -3,45 +3,53 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Sujan's Store</title>
+<title>Minimal Shop — Demo</title>
 
 <style>
 :root{
   --bg:#f6f7fb; --card:#ffffff; --accent:#7c5cff; --muted:#7b7f93;
+  --glass: rgba(255,255,255,0.6);
+  font-family: Inter, ui-sans-serif, system-ui;
+  --radius:12px;
 }
 *{box-sizing:border-box}
 body{
-  margin:0; font-family:Arial;
-  background:var(--bg);
-  padding:20px;
+  margin:0;
+  background:linear-gradient(180deg,var(--bg),#eef2ff 60%);
+  padding:32px;
+  display:flex;
+  justify-content:center;
 }
 
 /* DARK MODE */
 body.dark{
-  background:#0f172a;
-  color:#e5e7eb;
+  background:#0f172a !important;
+  color:white;
 }
-body.dark .card, 
-body.dark .cart{
-  background:#1e293b;
+body.dark .card,
+body.dark .cart,
+body.dark .search{
+  background:#1e293b !important;
   color:white;
 }
 
-/* LAYOUT */
+/* layout */
 .app{
+  width:100%;
+  max-width:1200px;
   display:grid;
-  grid-template-columns: 1fr 350px;
+  grid-template-columns:1fr 360px;
   gap:20px;
 }
 
-/* PRODUCT */
+/* product */
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
   gap:15px;
 }
 .card{
-  background:var(--card);
+  background:white;
   padding:10px;
   border-radius:10px;
 }
@@ -51,20 +59,19 @@ body.dark .cart{
   object-fit:cover;
 }
 
-/* CART */
-.cart{
-  background:white;
-  padding:15px;
-  border-radius:10px;
-}
-
-/* BUTTON */
 .btn{
   padding:6px 10px;
   border:none;
   background:#eee;
   border-radius:6px;
   cursor:pointer;
+}
+
+/* cart */
+.cart{
+  background:white;
+  padding:15px;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -73,22 +80,19 @@ body.dark .cart{
 
 <div class="app">
 
-<!-- PRODUCTS -->
 <div>
-  <h2>Sujan's Store 🛒</h2>
+<h2>Sujan's Store 🛒</h2>
 
-  <!-- DARK MODE BUTTON -->
-  <button class="btn" onclick="toggleDark()">🌙 Dark Mode</button>
+<button class="btn" onclick="toggleDark()">🌙 Dark</button>
 
-  <div class="grid" id="products"></div>
+<div class="grid" id="productGrid"></div>
 </div>
 
-<!-- CART -->
 <div class="cart">
-  <h3>Cart</h3>
-  <div id="cart"></div>
-  <h3 id="total">₹0</h3>
-  <button class="btn" onclick="checkout()">Checkout</button>
+<h3>Cart</h3>
+<div id="cartList"></div>
+<h3 id="subtotal">₹0</h3>
+<button class="btn" id="checkoutBtn">Checkout</button>
 </div>
 
 </div>
@@ -103,58 +107,61 @@ const PRODUCTS = [
 ];
 
 // STATE
-let cart = JSON.parse(localStorage.getItem('cart')||'{}');
-let wishlist = JSON.parse(localStorage.getItem('wishlist')||'[]');
-let dark = JSON.parse(localStorage.getItem('dark')||'false');
+let state = {
+  products: PRODUCTS,
+  cart: JSON.parse(localStorage.getItem('cart')||'{}'),
+  wishlist: JSON.parse(localStorage.getItem('wishlist')||'[]'),
+  darkMode: JSON.parse(localStorage.getItem('darkMode')||'false')
+};
 
-if(dark) document.body.classList.add('dark');
+if(state.darkMode) document.body.classList.add('dark');
 
 // FUNCTIONS
 
 function toggleDark(){
-  dark=!dark;
-  localStorage.setItem('dark',JSON.stringify(dark));
+  state.darkMode=!state.darkMode;
+  localStorage.setItem('darkMode',JSON.stringify(state.darkMode));
   document.body.classList.toggle('dark');
 }
 
 function addToCart(id){
-  cart[id]=(cart[id]||0)+1;
+  state.cart[id]=(state.cart[id]||0)+1;
   saveCart();
 }
 
 function saveCart(){
-  localStorage.setItem('cart',JSON.stringify(cart));
+  localStorage.setItem('cart',JSON.stringify(state.cart));
   renderCart();
 }
 
 function toggleWishlist(id){
-  if(wishlist.includes(id)){
-    wishlist=wishlist.filter(x=>x!==id);
+  if(state.wishlist.includes(id)){
+    state.wishlist=state.wishlist.filter(x=>x!==id);
   } else {
-    wishlist.push(id);
+    state.wishlist.push(id);
   }
-  localStorage.setItem('wishlist',JSON.stringify(wishlist));
+  localStorage.setItem('wishlist',JSON.stringify(state.wishlist));
   renderProducts();
 }
 
 // RENDER PRODUCTS
 function renderProducts(){
   let html='';
-  PRODUCTS.forEach(p=>{
+  state.products.forEach(p=>{
     html+=`
     <div class="card">
       <img src="${p.img}">
       <h4>${p.title}</h4>
-      <p>₹${p.price}</p>
       <p>⭐⭐⭐⭐☆</p>
+      <p>₹${p.price}</p>
       <button class="btn" onclick="addToCart(${p.id})">Add</button>
       <button class="btn" onclick="toggleWishlist(${p.id})">
-        ${wishlist.includes(p.id)?'❤️':'🤍'}
+        ${state.wishlist.includes(p.id)?'❤️':'🤍'}
       </button>
     </div>
     `;
   });
-  document.getElementById('products').innerHTML=html;
+  document.getElementById('productGrid').innerHTML=html;
 }
 
 // RENDER CART
@@ -162,40 +169,40 @@ function renderCart(){
   let html='';
   let total=0;
 
-  for(let id in cart){
-    let p=PRODUCTS.find(x=>x.id==id);
-    let qty=cart[id];
+  for(let id in state.cart){
+    let p=state.products.find(x=>x.id==id);
+    let qty=state.cart[id];
     total+=p.price*qty;
 
     html+=`
     <div>
       ${p.title} x ${qty}
-      <button onclick="cart[${id}]--; if(cart[${id}]<=0) delete cart[${id}]; saveCart()">-</button>
+      <button onclick="state.cart[${id}]--; if(state.cart[${id}]<=0) delete state.cart[${id}]; saveCart()">-</button>
     </div>
     `;
   }
 
-  document.getElementById('cart').innerHTML=html;
-  document.getElementById('total').innerText='₹'+total;
+  document.getElementById('cartList').innerHTML=html;
+  document.getElementById('subtotal').innerText='₹'+total;
 }
 
 // CHECKOUT
-function checkout(){
-  if(Object.keys(cart).length===0){
+document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+  if(Object.keys(state.cart).length===0){
     alert('Cart empty!');
     return;
   }
 
-  let orderId=Math.floor(Math.random()*100000);
+  let id=Math.floor(Math.random()*100000);
 
   document.body.innerHTML=`
     <div style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column">
-      <h1>🎉 Order Successful</h1>
-      <p>Order ID: #${orderId}</p>
+      <h1>🎉 Order Success</h1>
+      <p>Order ID: #${id}</p>
       <button onclick="location.reload()">Back</button>
     </div>
   `;
-}
+});
 
 // INIT
 renderProducts();
